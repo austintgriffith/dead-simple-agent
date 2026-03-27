@@ -1,5 +1,5 @@
 """
-tools.py - Tool definitions and implementations for qwen-run.
+tools.py - Tool definitions and implementations for the agent.
 
 Each tool is a dict with:
   - "spec": the Ollama tool schema (passed to the model)
@@ -419,6 +419,27 @@ TOOL_REGISTRY = [
 def get_tool_specs():
     """Return the list of Ollama tool schemas to pass to the model."""
     return [t["spec"] for t in TOOL_REGISTRY]
+
+
+def get_tool_summary():
+    """Auto-generate a readable tool list for injection into the system prompt."""
+    lines = []
+    for t in TOOL_REGISTRY:
+        fn = t["spec"]["function"]
+        name = fn["name"]
+        desc = fn.get("description", "")
+        params = fn.get("parameters", {}).get("properties", {})
+        required = fn.get("parameters", {}).get("required", [])
+
+        param_parts = []
+        for pname, pinfo in params.items():
+            req = " (required)" if pname in required else ""
+            param_parts.append(f"  - {pname}: {pinfo.get('description', pinfo.get('type', ''))}{req}")
+
+        lines.append(f"- **{name}**: {desc}")
+        if param_parts:
+            lines.extend(param_parts)
+    return "\n".join(lines)
 
 
 def run_tool(name, args):
